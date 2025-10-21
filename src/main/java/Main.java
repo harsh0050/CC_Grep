@@ -17,11 +17,11 @@ public class Main {
 
     // Uncomment this block to pass the first stage
     // 
-    // if (matchPattern(inputLine, pattern)) {
-    //     System.exit(0);
-    // } else {
-    //     System.exit(1);
-    // }
+    if (matchPattern(inputLine, pattern)) {
+        System.exit(0);
+    } else {
+        System.exit(1);
+    }
   }
 
   public static boolean matchPattern(String inputLine, String pattern) {
