@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Scanner;
 
 public class Main {
@@ -27,7 +28,7 @@ public class Main {
 
     public static boolean matchPattern(String inputLine, String pattern) {
         char[] inputLineArray = inputLine.toCharArray();
-
+        HashSet<Integer> positiveCharacterSet;
         if (pattern.length() == 1) {
             return inputLine.contains(pattern);
         } else if (pattern.contains("\\d")) {
@@ -39,6 +40,8 @@ public class Main {
             return false;
         } else if (pattern.contains("\\w")) {
             return inputLine.chars().anyMatch(Main::isW);
+        } else if((positiveCharacterSet = matchPatternPositiveCharSet(pattern)) != null){
+            return inputLine.chars().anyMatch(positiveCharacterSet::contains);
         } else {
             throw new RuntimeException("Unhandled pattern: " + pattern);
         }
@@ -46,6 +49,23 @@ public class Main {
 
     public static boolean isW(int ch) {
         return Character.isAlphabetic(ch) || Character.isDigit(ch) || ch == '_';
+    }
+    public static HashSet<Integer> matchPatternPositiveCharSet(String pattern){
+        char[] str = pattern.toCharArray();
+        if(str.length < 2) return null;
+        HashSet<Integer> set = new HashSet<>();
+        if(str[0] == '['){
+            boolean flag = false;
+            int idx = 1;
+            while(idx < str.length && str[idx] != ']'){
+                char ch = str[idx];
+                set.add((int) ch);
+                idx++;
+            }
+            if(idx == str.length) return null;
+            return set;
+        }
+        return null;
     }
 
 }
