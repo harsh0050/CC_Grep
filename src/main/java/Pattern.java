@@ -47,7 +47,8 @@ public class Pattern {
                         ls.add(new DigitCharacterClass());
                         break;
                     default:
-                        return null;
+                        ls.add(new CharLiteral(arrPattern[idx + 1]));
+                        break;
                 }
                 idx++;
             } else if (arrPattern[idx] == '[') {
@@ -60,6 +61,8 @@ public class Pattern {
                 CharacterSet characterSet = getPatternCharacterSet(pattern, start, idx - 1);
                 if (characterSet == null) return null;
                 ls.add(new CharSetCharacterClass(characterSet));
+            } else if (arrPattern[idx] == '.') {
+                ls.add(new WildCard());
             } else {
                 ls.add(new CharLiteral(arrPattern[idx]));
             }

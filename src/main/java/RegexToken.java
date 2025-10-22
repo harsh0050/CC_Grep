@@ -56,6 +56,14 @@ class WordCharCharacterClass extends RegexToken {
     }
 }
 
+class WildCard extends RegexToken {
+
+    @Override
+    public boolean doesItAllow(int codePoint) {
+        return true;
+    }
+}
+
 class CharSetCharacterClass extends RegexToken {
     private CharacterSet characterSet;
 
@@ -69,7 +77,7 @@ class CharSetCharacterClass extends RegexToken {
     }
 
     @Override
-    public RegexToken clone(){
+    public RegexToken clone() {
         CharSetCharacterClass clone = (CharSetCharacterClass) super.clone();
         clone.characterSet = this.characterSet;
         return clone;
