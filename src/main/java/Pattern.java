@@ -4,16 +4,25 @@ import java.util.HashSet;
 public class Pattern {
     private final ArrayList<CharacterMatcher> pattern;
     public final Anchor anchor;
+
     public Pattern(String patternString) {
-        if(patternString.isEmpty()) throw new RuntimeException("Unhandled pattern: " + patternString);
+        if (patternString.isEmpty()) throw new RuntimeException("Unhandled pattern: " + patternString);
         int beginIdx = 0;
-        if(patternString.startsWith("^")){
-            anchor = Anchor.START_OF_LINE;
+        int endIdx = patternString.length();
+        if (patternString.startsWith("^")) {
+            if (patternString.endsWith("$")) {
+                anchor = Anchor.EXACT;
+                endIdx--;
+            } else
+                anchor = Anchor.START_OF_LINE;
             beginIdx++;
-        } else{
+        } else if (patternString.endsWith("$")) {
+            anchor = Anchor.END_OF_LINE;
+            endIdx--;
+        } else {
             anchor = Anchor.NONE;
         }
-        this.pattern = buildPattern(patternString.substring(beginIdx));
+        this.pattern = buildPattern(patternString.substring(beginIdx, endIdx));
         if (this.pattern == null) throw new RuntimeException("Unhandled pattern: " + patternString);
     }
 
@@ -70,17 +79,23 @@ public class Pattern {
         }
         return new CharacterSet(kind, set);
     }
-    public boolean match(String string){
-        if(anchor == Anchor.START_OF_LINE){
+
+    public boolean match(String string) {
+        if (anchor == Anchor.START_OF_LINE) {
             return match(string, 0);
+        } else if (anchor == Anchor.END_OF_LINE) {
+            return string.length() >= pattern.size() && match(string, string.length() - pattern.size());
+        } else if (anchor == Anchor.EXACT) {
+            return string.length() == pattern.size() && match(string, 0);
         }
-        for(int i = 0; i<string.length(); i++){
-            if(match(string, i)){
+        for (int i = 0; i < string.length(); i++) {
+            if (match(string, i)) {
                 return true;
             }
         }
         return false;
     }
+
     private boolean match(String string, int start) {
         int patternIdx = 0;
         int stringIdx = start;
@@ -94,9 +109,11 @@ public class Pattern {
         }
         return patternIdx == pattern.size();
     }
-    enum Anchor{
+
+    enum Anchor {
         START_OF_LINE,
         END_OF_LINE,
+        EXACT,
         NONE
     }
 }
