@@ -35,7 +35,7 @@ class WordCharCharacterClass extends CharacterMatcher {
 
     @Override
     public boolean doesItAllow(int codePoint) {
-        return Character.isLetterOrDigit(codePoint);
+        return Character.isLetterOrDigit(codePoint) || codePoint == '_';
     }
 }
 
