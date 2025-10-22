@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 public class Pattern {
-    private final ArrayList<CharacterMatcher> pattern;
+    private final ArrayList<RegexToken> pattern;
     public final Anchor anchor;
 
     public Pattern(String patternString) {
@@ -26,12 +26,14 @@ public class Pattern {
         if (this.pattern == null) throw new RuntimeException("Unhandled pattern: " + patternString);
     }
 
-    private static ArrayList<CharacterMatcher> buildPattern(String pattern) {
-        ArrayList<CharacterMatcher> ls = new ArrayList<>();
+    private static ArrayList<RegexToken> buildPattern(String pattern) {
+        ArrayList<RegexToken> ls = new ArrayList<>();
         int idx = 0;
         char[] arrPattern = pattern.toCharArray();
         while (idx < arrPattern.length) {
-            if (arrPattern[idx] == '\\') {
+            if(arrPattern[idx] == '+'){
+                ls.getLast().quantifier = Quantifier.GREEDY_PLUS;
+            } else if (arrPattern[idx] == '\\') {
                 if (idx + 1 == arrPattern.length) return null;
                 switch (arrPattern[idx + 1]) {
                     case 'w':
@@ -82,32 +84,50 @@ public class Pattern {
 
     public boolean match(String string) {
         if (anchor == Anchor.START_OF_LINE) {
-            return match(string, 0);
-        } else if (anchor == Anchor.END_OF_LINE) {
-            return string.length() >= pattern.size() && match(string, string.length() - pattern.size());
+            return match(string, 0, 0) != -1;
         } else if (anchor == Anchor.EXACT) {
-            return string.length() == pattern.size() && match(string, 0);
+            return match(string, 0, 0) == string.length();
         }
+
         for (int i = 0; i < string.length(); i++) {
-            if (match(string, i)) {
+            int match = match(string, i, 0);
+            if (anchor == Anchor.NONE && match != -1) {
+                return true;
+            }else if(anchor == Anchor.END_OF_LINE && match == string.length()){
                 return true;
             }
         }
         return false;
     }
 
-    private boolean match(String string, int start) {
-        int patternIdx = 0;
-        int stringIdx = start;
+    /**
+     * return the index from the "string" after matching the found pattern */
+    private int match(String string, int stringStart, int patternStart) {
+        int patternIdx = patternStart;
+        int stringIdx = stringStart;
         while (patternIdx < pattern.size() && stringIdx < string.length()) {
-            CharacterMatcher curr = pattern.get(patternIdx);
+            RegexToken curr = pattern.get(patternIdx);
+            if(curr.quantifier == Quantifier.GREEDY_PLUS){
+                int count = 0;
+                while(stringIdx < string.length() && curr.doesItAllow(string.charAt(stringIdx))){
+                    stringIdx++;
+                    count++;
+                    int match = match(string, stringIdx, patternIdx + 1);
+                    if(match != -1) return match;
+                }
+                patternIdx++;
+                if(count > 0) continue;
+                return -1;
+            }
             if (!curr.doesItAllow(string.charAt(stringIdx))) {
-                return false;
+                return -1;
             }
             patternIdx++;
             stringIdx++;
         }
-        return patternIdx == pattern.size();
+        if(patternIdx != pattern.size())
+            return -1;
+        return stringIdx;
     }
 
     enum Anchor {

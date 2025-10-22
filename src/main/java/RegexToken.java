@@ -1,9 +1,15 @@
 import java.util.HashSet;
 
-public abstract class CharacterMatcher {
+public abstract class RegexToken {
+    Quantifier quantifier;
+
+    public RegexToken() {
+        quantifier = Quantifier.NONE;
+    }
+
     public abstract boolean doesItAllow(int codePoint);
 }
-class CharLiteral extends CharacterMatcher {
+class CharLiteral extends RegexToken {
     int codePoint;
     public CharLiteral(int codePoint) {
         this.codePoint = codePoint;
@@ -14,21 +20,21 @@ class CharLiteral extends CharacterMatcher {
         return codePoint == this.codePoint;
     }
 }
-class DigitCharacterClass extends CharacterMatcher {
+class DigitCharacterClass extends RegexToken {
     @Override
     public boolean doesItAllow(int codePoint) {
         return Character.isDigit(codePoint);
     }
 }
 
-class WordCharCharacterClass extends CharacterMatcher {
+class WordCharCharacterClass extends RegexToken {
     @Override
     public boolean doesItAllow(int codePoint) {
         return Character.isLetterOrDigit(codePoint) || codePoint == '_';
     }
 }
 
-class CharSetCharacterClass extends CharacterMatcher {
+class CharSetCharacterClass extends RegexToken {
     private final CharacterSet characterSet;
 
     public CharSetCharacterClass(CharacterSet characterSet) {
@@ -64,6 +70,10 @@ class CharacterSet {
 enum CharacterSetKind {
     POSITIVE,
     NEGATIVE
+}
+enum Quantifier{
+    GREEDY_PLUS,
+    NONE
 }
 
 
