@@ -21,6 +21,6 @@ public class Main {
 
     public static boolean matchPattern(String inputLine, String stringPattern) {
         Pattern pattern = new Pattern(stringPattern);
-        pattern.match(inputLine);
+        return pattern.match(inputLine);
     }
 }
