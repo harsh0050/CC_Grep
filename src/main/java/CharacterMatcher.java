@@ -1,15 +1,12 @@
 import java.util.HashSet;
 
 public abstract class CharacterMatcher {
-    CharacterClassKind kind;
-
     public abstract boolean doesItAllow(int codePoint);
 }
 class CharLiteral extends CharacterMatcher {
     int codePoint;
     public CharLiteral(int codePoint) {
         this.codePoint = codePoint;
-        this.kind = CharacterClassKind.LITERAL;
     }
 
     @Override
@@ -18,10 +15,6 @@ class CharLiteral extends CharacterMatcher {
     }
 }
 class DigitCharacterClass extends CharacterMatcher {
-    public DigitCharacterClass() {
-        this.kind = CharacterClassKind.DIGIT;
-    }
-
     @Override
     public boolean doesItAllow(int codePoint) {
         return Character.isDigit(codePoint);
@@ -29,10 +22,6 @@ class DigitCharacterClass extends CharacterMatcher {
 }
 
 class WordCharCharacterClass extends CharacterMatcher {
-    public WordCharCharacterClass() {
-        this.kind = CharacterClassKind.CHARACTER;
-    }
-
     @Override
     public boolean doesItAllow(int codePoint) {
         return Character.isLetterOrDigit(codePoint) || codePoint == '_';
@@ -44,7 +33,6 @@ class CharSetCharacterClass extends CharacterMatcher {
 
     public CharSetCharacterClass(CharacterSet characterSet) {
         this.characterSet = characterSet;
-        this.kind = CharacterClassKind.CHARACTER_CLASS;
     }
 
     @Override
@@ -78,10 +66,4 @@ enum CharacterSetKind {
     NEGATIVE
 }
 
-enum CharacterClassKind {
-    LITERAL,
-    DIGIT,
-    CHARACTER,
-    CHARACTER_CLASS
-}
 

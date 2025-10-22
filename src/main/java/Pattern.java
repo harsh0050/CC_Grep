@@ -2,10 +2,18 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 public class Pattern {
-    private ArrayList<CharacterMatcher> pattern;
-
+    private final ArrayList<CharacterMatcher> pattern;
+    public final Anchor anchor;
     public Pattern(String patternString) {
-        this.pattern = buildPattern(patternString);
+        if(patternString.isEmpty()) throw new RuntimeException("Unhandled pattern: " + patternString);
+        int beginIdx = 0;
+        if(patternString.startsWith("^")){
+            anchor = Anchor.START_OF_LINE;
+            beginIdx++;
+        } else{
+            anchor = Anchor.NONE;
+        }
+        this.pattern = buildPattern(patternString.substring(beginIdx));
         if (this.pattern == null) throw new RuntimeException("Unhandled pattern: " + patternString);
     }
 
@@ -39,14 +47,11 @@ public class Pattern {
                 ls.add(new CharSetCharacterClass(characterSet));
             } else {
                 ls.add(new CharLiteral(arrPattern[idx]));
-//                return null;
-//                    
             }
             idx++;
         }
         return ls;
     }
-
 
     private static CharacterSet getPatternCharacterSet(String pattern, int start, int end) {
         char[] str = pattern.toCharArray();
@@ -65,8 +70,18 @@ public class Pattern {
         }
         return new CharacterSet(kind, set);
     }
-
-    public boolean matchPattern(String string, int start) {
+    public boolean match(String string){
+        if(anchor == Anchor.START_OF_LINE){
+            return match(string, 0);
+        }
+        for(int i = 0; i<string.length(); i++){
+            if(match(string, i)){
+                return true;
+            }
+        }
+        return false;
+    }
+    private boolean match(String string, int start) {
         int patternIdx = 0;
         int stringIdx = start;
         while (patternIdx < pattern.size() && stringIdx < string.length()) {
@@ -78,5 +93,10 @@ public class Pattern {
             stringIdx++;
         }
         return patternIdx == pattern.size();
+    }
+    enum Anchor{
+        START_OF_LINE,
+        END_OF_LINE,
+        NONE
     }
 }
