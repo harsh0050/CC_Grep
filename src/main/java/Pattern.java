@@ -23,6 +23,8 @@ public class Pattern {
                     case 'd':
                         ls.add(new DigitCharacterClass());
                         break;
+                    default:
+                        return null;
                 }
                 idx++;
             } else if (arrPattern[idx] == '[') {
