@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Objects;
 
 public class Pattern {
     private final ArrayList<RegexToken> pattern;
@@ -31,8 +32,11 @@ public class Pattern {
         int idx = 0;
         char[] arrPattern = pattern.toCharArray();
         while (idx < arrPattern.length) {
-            if(arrPattern[idx] == '+'){
-                ls.getLast().quantifier = Quantifier.GREEDY_PLUS;
+            if (arrPattern[idx] == '+') { // considers + as a normal regex token and a star regex token.
+                ls.add(ls.getLast().clone());
+                ls.getLast().quantifier = Quantifier.GREEDY_STAR;
+            } else if (arrPattern[idx] == '?') {
+                ls.getLast().quantifier = Quantifier.GREEDY_STAR;
             } else if (arrPattern[idx] == '\\') {
                 if (idx + 1 == arrPattern.length) return null;
                 switch (arrPattern[idx + 1]) {
@@ -93,7 +97,7 @@ public class Pattern {
             int match = match(string, i, 0);
             if (anchor == Anchor.NONE && match != -1) {
                 return true;
-            }else if(anchor == Anchor.END_OF_LINE && match == string.length()){
+            } else if (anchor == Anchor.END_OF_LINE && match == string.length()) {
                 return true;
             }
         }
@@ -101,23 +105,24 @@ public class Pattern {
     }
 
     /**
-     * return the index from the "string" after matching the found pattern */
+     * return the index from the "string" after matching the found pattern
+     */
     private int match(String string, int stringStart, int patternStart) {
         int patternIdx = patternStart;
         int stringIdx = stringStart;
         while (patternIdx < pattern.size() && stringIdx < string.length()) {
             RegexToken curr = pattern.get(patternIdx);
-            if(curr.quantifier == Quantifier.GREEDY_PLUS){
-                int count = 0;
-                while(stringIdx < string.length() && curr.doesItAllow(string.charAt(stringIdx))){
+            if (curr.quantifier == Quantifier.GREEDY_STAR) {
+//                int count = 0;
+                int match = match(string, stringIdx, patternIdx + 1); // skip the token
+                if (match != -1) return match;
+                while (stringIdx < string.length() && curr.doesItAllow(string.charAt(stringIdx))) {
                     stringIdx++;
-                    count++;
-                    int match = match(string, stringIdx, patternIdx + 1);
-                    if(match != -1) return match;
+                    match = match(string, stringIdx, patternIdx + 1);
+                    if (match != -1) return match;
                 }
                 patternIdx++;
-                if(count > 0) continue;
-                return -1;
+                continue;
             }
             if (!curr.doesItAllow(string.charAt(stringIdx))) {
                 return -1;
@@ -125,7 +130,7 @@ public class Pattern {
             patternIdx++;
             stringIdx++;
         }
-        if(patternIdx != pattern.size())
+        if (patternIdx != pattern.size())
             return -1;
         return stringIdx;
     }
