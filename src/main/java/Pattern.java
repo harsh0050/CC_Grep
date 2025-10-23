@@ -3,7 +3,7 @@ import java.util.HashSet;
 import java.util.Objects;
 
 public class Pattern {
-    private final ArrayList<RegexToken> pattern;
+    private final ArrayList<PatternNode> pattern;
     public final Anchor anchor;
 
     public Pattern(String patternString) {
@@ -27,27 +27,27 @@ public class Pattern {
         if (this.pattern == null) throw new RuntimeException("Unhandled pattern: " + patternString);
     }
 
-    private static ArrayList<RegexToken> buildPattern(String pattern) {
-        ArrayList<RegexToken> ls = new ArrayList<>();
+    private static ArrayList<PatternNode> buildPattern(String pattern) {
+        ArrayList<PatternNode> ls = new ArrayList<>();
         int idx = 0;
         char[] arrPattern = pattern.toCharArray();
         while (idx < arrPattern.length) {
             if (arrPattern[idx] == '+') { // considers + as a normal regex token and a star regex token.
-                ls.add(ls.getLast().clone());
-                ls.getLast().quantifier = Quantifier.GREEDY_STAR;
+                ls.add(new PatternNode(ls.getLast().regexToken.clone()));
+                ls.getLast().regexToken.quantifier = Quantifier.GREEDY_STAR;
             } else if (arrPattern[idx] == '?') {
-                ls.getLast().quantifier = Quantifier.GREEDY_STAR;
+                ls.getLast().regexToken.quantifier = Quantifier.GREEDY_STAR;
             } else if (arrPattern[idx] == '\\') {
                 if (idx + 1 == arrPattern.length) return null;
                 switch (arrPattern[idx + 1]) {
                     case 'w':
-                        ls.add(new WordCharCharacterClass());
+                        ls.add(new PatternNode(new WordCharCharacterClass()));
                         break;
                     case 'd':
-                        ls.add(new DigitCharacterClass());
+                        ls.add(new PatternNode(new DigitCharacterClass()));
                         break;
                     default:
-                        ls.add(new CharLiteral(arrPattern[idx + 1]));
+                        ls.add(new PatternNode(new CharLiteral(arrPattern[idx + 1])));
                         break;
                 }
                 idx++;
@@ -60,11 +60,11 @@ public class Pattern {
                 if (idx == arrPattern.length) return null;
                 CharacterSet characterSet = getPatternCharacterSet(pattern, start, idx - 1);
                 if (characterSet == null) return null;
-                ls.add(new CharSetCharacterClass(characterSet));
+                ls.add(new PatternNode(new CharSetCharacterClass(characterSet)));
             } else if (arrPattern[idx] == '.') {
-                ls.add(new WildCard());
+                ls.add(new PatternNode(new WildCard()));
             } else {
-                ls.add(new CharLiteral(arrPattern[idx]));
+                ls.add(new PatternNode(new CharLiteral(arrPattern[idx])));
             }
             idx++;
         }
@@ -114,7 +114,7 @@ public class Pattern {
         int patternIdx = patternStart;
         int stringIdx = stringStart;
         while (patternIdx < pattern.size() && stringIdx < string.length()) {
-            RegexToken curr = pattern.get(patternIdx);
+            RegexToken curr = pattern.get(patternIdx).regexToken;
             if (curr.quantifier == Quantifier.GREEDY_STAR) {
 //                int count = 0;
                 int match = match(string, stringIdx, patternIdx + 1); // skip the token
@@ -143,5 +143,18 @@ public class Pattern {
         END_OF_LINE,
         EXACT,
         NONE
+    }
+}
+
+class PatternNode {
+    RegexToken regexToken;
+    ArrayList<PatternNode> alterations;
+
+    public PatternNode() {
+        alterations = new ArrayList<>();
+    }
+
+    public PatternNode(RegexToken regexToken) {
+        this.regexToken = regexToken;
     }
 }
