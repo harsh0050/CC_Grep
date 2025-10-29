@@ -2,6 +2,8 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
+//        System.out.println(matchPattern("I see 1 cat", "^I see \\d+ (cat|dog)s+$"));
+//        System.out.println("".substring(0));
         if (args.length != 2 || !args[0].equals("-E")) {
             System.out.println("Usage: ./your_program.sh -E <pattern>");
             System.exit(1);
