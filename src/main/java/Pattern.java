@@ -23,71 +23,10 @@ public class Pattern {
         } else {
             anchor = Anchor.NONE;
         }
-        this.pattern = buildPattern(patternString.substring(beginIdx, endIdx));
+        this.pattern = PatternParser.buildPattern(patternString.substring(beginIdx, endIdx));
         if (this.pattern == null) throw new RuntimeException("Unhandled pattern: " + patternString);
     }
 
-    private static ArrayList<RegexToken> buildPattern(String pattern) {
-        ArrayList<RegexToken> ls = new ArrayList<>();
-        int idx = 0;
-        char[] arrPattern = pattern.toCharArray();
-        while (idx < arrPattern.length) {
-            if (arrPattern[idx] == '+') { // considers + as a normal regex token and a star regex token.
-                ls.add(ls.getLast().clone());
-                ls.getLast().quantifier = Quantifier.GREEDY_STAR;
-            } else if (arrPattern[idx] == '?') {
-                ls.getLast().quantifier = Quantifier.GREEDY_STAR;
-            } else if (arrPattern[idx] == '\\') {
-                if (idx + 1 == arrPattern.length) return null;
-                switch (arrPattern[idx + 1]) {
-                    case 'w':
-                        ls.add(new WordCharCharacterClass());
-                        break;
-                    case 'd':
-                        ls.add(new DigitCharacterClass());
-                        break;
-                    default:
-                        ls.add(new CharLiteral(arrPattern[idx + 1]));
-                        break;
-                }
-                idx++;
-            } else if (arrPattern[idx] == '[') {
-                idx++;
-                int start = idx;
-                while (idx < arrPattern.length && arrPattern[idx] != ']') {
-                    idx++;
-                }
-                if (idx == arrPattern.length) return null;
-                CharacterSet characterSet = getPatternCharacterSet(pattern, start, idx - 1);
-                if (characterSet == null) return null;
-                ls.add(new CharSetCharacterClass(characterSet));
-            } else if (arrPattern[idx] == '.') {
-                ls.add(new WildCard());
-            } else {
-                ls.add(new CharLiteral(arrPattern[idx]));
-            }
-            idx++;
-        }
-        return ls;
-    }
-
-    private static CharacterSet getPatternCharacterSet(String pattern, int start, int end) {
-        char[] str = pattern.toCharArray();
-        if (str.length - start < 2) return null;
-        HashSet<Integer> set = new HashSet<>();
-        CharacterSetKind kind;
-        int idx = start;
-        if (str[idx] == '^') {
-            idx++;
-            kind = CharacterSetKind.NEGATIVE;
-        } else {
-            kind = CharacterSetKind.POSITIVE;
-        }
-        for (int i = idx; i <= end; i++) {
-            set.add((int) str[i]);
-        }
-        return new CharacterSet(kind, set);
-    }
 
     public boolean match(String string) {
         if (anchor == Anchor.START_OF_LINE) {

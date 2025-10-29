@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.HashSet;
 
 public abstract class RegexToken implements Cloneable {
@@ -47,12 +48,30 @@ class DigitCharacterClass extends RegexToken {
     public boolean doesItAllow(int codePoint) {
         return Character.isDigit(codePoint);
     }
+
+    static HashSet<Integer> characters;
+
+    static {
+        characters = new HashSet<>();
+        for (char ch = '0'; ch <= '9'; ch++) characters.add((int) ch);
+    }
 }
 
 class WordCharCharacterClass extends RegexToken {
+
     @Override
     public boolean doesItAllow(int codePoint) {
         return Character.isLetterOrDigit(codePoint) || codePoint == '_';
+    }
+
+    static HashSet<Integer> characters;
+
+    static {
+        characters = new HashSet<>();
+        for (char ch = '0'; ch <= '9'; ch++) characters.add((int) ch);
+        for (char ch = 'a'; ch <= 'z'; ch++) characters.add((int) ch);
+        for (char ch = 'A'; ch <= 'Z'; ch++) characters.add((int) ch);
+        characters.add((int) '_');
     }
 }
 
@@ -64,29 +83,54 @@ class WildCard extends RegexToken {
     }
 }
 
-class CharSetCharacterClass extends RegexToken {
-    private CharacterSet characterSet;
+//class CharSetCharacterClass extends RegexToken {
+//    private CharacterSet characterSet;
+//
+//    public CharSetCharacterClass(CharacterSet characterSet) {
+//        this.characterSet = characterSet;
+//    }
+//
+//    @Override
+//    public boolean doesItAllow(int codePoint) {
+//        return characterSet.doesSetAllow(codePoint);
+//    }
+//
+//    @Override
+//    public CharSetCharacterClass clone() {
+//        CharSetCharacterClass clone = (CharSetCharacterClass) super.clone();
+//        clone.characterSet = this.characterSet;
+//        return clone;
+//    }
+//
+//}
 
-    public CharSetCharacterClass(CharacterSet characterSet) {
-        this.characterSet = characterSet;
+
+class Alternation extends RegexToken {
+    private ArrayList<Pattern> alternations;
+
+    public Alternation(ArrayList<Pattern> alternations) {
+        this.alternations = alternations;
     }
 
     @Override
     public boolean doesItAllow(int codePoint) {
-        return characterSet.doesSetAllow(codePoint);
+        for (Pattern pattern : alternations) {
+//            pattern.match()
+//            if(token.doesItAllow(codePoint)) return true;
+        }
+        return false;
     }
 
     @Override
-    public RegexToken clone() {
-        CharSetCharacterClass clone = (CharSetCharacterClass) super.clone();
-        clone.characterSet = this.characterSet;
+    public Alternation clone() {
+        Alternation clone = (Alternation) super.clone();
+        clone.alternations = this.alternations;
         return clone;
     }
-
 }
 
 //helper
-class CharacterSet {
+class CharacterSet extends RegexToken {
     CharacterSetKind kind;
     HashSet<Integer> set;
 
@@ -95,7 +139,8 @@ class CharacterSet {
         this.set = set;
     }
 
-    public boolean doesSetAllow(int codePoint) {
+    @Override
+    public boolean doesItAllow(int codePoint) {
         boolean setContains = set.contains(codePoint);
         if (kind == CharacterSetKind.POSITIVE) {
             return setContains;
@@ -104,6 +149,13 @@ class CharacterSet {
         }
     }
 
+    @Override
+    public CharacterSet clone() {
+        CharacterSet characterSet = (CharacterSet) super.clone();
+        characterSet.kind = this.kind;
+        characterSet.set = this.set;
+        return characterSet;
+    }
 }
 
 enum CharacterSetKind {
