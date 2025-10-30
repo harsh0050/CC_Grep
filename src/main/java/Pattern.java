@@ -145,7 +145,7 @@ public class Pattern {
         return currStart;
     }
 
-    private static CharacterSet getPatternCharacterSet(String pattern, int start, int end) {
+    static CharacterSet getPatternCharacterSet(String pattern, int start, int end) {
         char[] str = pattern.toCharArray();
         if (str.length - start < 2) return null;
         HashSet<Integer> set = new HashSet<>();

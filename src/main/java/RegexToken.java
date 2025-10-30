@@ -40,6 +40,10 @@ class CharLiteral extends RegexToken {
         return clone;
     }
 
+    @Override
+    public String toString() {
+        return "CharLiteral: '%c'".formatted((char) codePoint);
+    }
 }
 
 class DigitCharacterClass extends RegexToken {
