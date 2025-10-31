@@ -2,13 +2,13 @@ import java.util.ArrayList;
 
 public class PatternV3 {
 
-    private final AutomataState start;
+    private final State start;
     private final ArrayList<Anchor> anchors;
     private final ArrayList<PatternSequence> savedStrings;
 
     public PatternV3(String pattern) {
         if (pattern.isEmpty()) throw new RuntimeException("Unhandled pattern: " + pattern);
-        start = new AutomataState();
+//        start = new State(StateType.INITIAL);
         anchors = new ArrayList<>();
         savedStrings = new ArrayList<>();
         int beginIdx = 0;
@@ -22,44 +22,87 @@ public class PatternV3 {
             endIdx--;
         }
         pattern = pattern.substring(beginIdx, endIdx);
-        AutomataState state = buildPattern(pattern, new TerminalState());
+        State state = buildPattern(pattern, new State(StateType.FINAL));
         if (state == null) {
             throw new RuntimeException("Unhandled pattern: " + pattern);
         }
-        start.addTransitionTo(state);
+        this.start = state;
     }
 
-    private AutomataState buildPattern(String stringPattern, AutomataState end) {
-        if (stringPattern.isEmpty()) return end;
+    public boolean match(String inputString) {
+        if (anchors.contains(Anchor.START_OF_LINE)) {
+            return match(inputString, start, 0);
+        }
+
+        for (int i = 0; i < inputString.length(); i++) {
+            if (match(inputString, start, i)) return true;
+        }
+        return false;
+    }
+
+    public boolean match(String inputString, State state, int fromIndex) {
+        if (state.type == StateType.FINAL) {
+            if (anchors.contains(Anchor.END_OF_LINE)) {
+                return fromIndex == inputString.length();
+            }
+            return true;
+        }
+        // TODO (string empty and remains nodes are Stars)
+//        state.setIndex(fromIndex);
+        if (state instanceof AlternationEnd) {
+            ((AlternationEnd) state).saveString(inputString, fromIndex);
+        }
+        for (Transition transition : state.transitions) {
+            int nextIndex = transition.match(inputString, fromIndex);
+            if (nextIndex == -1) continue;
+            state.setIndex(fromIndex);
+            if (match(inputString, transition.destination, nextIndex)) {
+                return true;
+            }
+            state.resetIndex();
+        }
+        return false;
+    }
+
+    private State buildPattern(String stringPattern, State finalState) {
+        if (stringPattern.isEmpty()) return finalState;
         char[] pattern = stringPattern.toCharArray();
         boolean isBackref = false;
         int idx = 0;
-        AutomataState currStart, currEnd;
-        currStart = currEnd = new AutomataState();
+        State start = new State();
+        State end = new State();
 
         if (pattern[idx] == '\\') {
             if (idx + 1 == pattern.length) return null;
             switch (pattern[++idx]) {
-                case 'w' -> currStart.addTransition(new NormalTransition(new WordCharCharacterClass()));
-                case 'd' -> currStart.addTransition(new NormalTransition(new DigitCharacterClass()));
-                default -> currStart.addTransition(new NormalTransition(new CharLiteral(pattern[idx])));
+                case 'w' -> start.addNormalTransitionTo(end, new WordCharCharacterClass());
+                case 'd' -> start.addNormalTransitionTo(end, new DigitCharacterClass());
+                default -> {
+                    if(pattern[idx] >= '1' && pattern[idx] <='9'){
+                        int backrefIndex = pattern[idx] - '1';
+                        start.addNormalTransitionTo(end, savedStrings.get(backrefIndex));
+                    }else{
+                        start.addNormalTransitionTo(end, new CharLiteral(pattern[idx]));
+                    }
+                }
             }
         } else if (pattern[idx] == '[') {
             idx++;
-            int start = idx;
+            int startIndex = idx;
             while (idx < pattern.length && pattern[idx] != ']') {
                 idx++;
             }
             if (idx == pattern.length) return null;
-            CharacterSet characterSet = Pattern.getPatternCharacterSet(stringPattern, start, idx - 1);
+            CharacterSet characterSet = RegexToken.getPatternCharacterSet(stringPattern, startIndex, idx - 1);
             if (characterSet == null) return null;
-            currStart.addTransition(new NormalTransition(new CharSetCharacterClass(characterSet)));
+            start.addNormalTransitionTo(end, new CharSetCharacterClass(characterSet));
         } else if (pattern[idx] == '.') {
-            currStart.addTransition(new NormalTransition(new WildCard()));
+            start.addNormalTransitionTo(end, new WildCard());
         } else if (pattern[idx] == '(') {
-            isBackref = true;
-            currStart = new AutomataState();
-            currEnd = new AutomataState();
+            PatternSequence patternSequence = new PatternSequence();
+            savedStrings.add(patternSequence);
+            start = new AlternationStart(patternSequence);
+            end = new AlternationEnd((AlternationStart) start);
             idx++;
             int tempStart = idx;
             int count = 1;
@@ -68,9 +111,7 @@ public class PatternV3 {
                 else if (pattern[idx] == ')') count--;
                 if ((pattern[idx] == '|' && count == 1) || count == 0) {
                     String substring = stringPattern.substring(tempStart, idx);
-                    Transition epsTransition = new EpsilonTransition();
-                    epsTransition.destination = buildPattern(substring, currEnd);
-                    currStart.addTransition(epsTransition);
+                    start.addEpsilonTransitionTo(buildPattern(substring, end));
                     tempStart = idx + 1;
                 }
                 idx++;
@@ -78,19 +119,22 @@ public class PatternV3 {
             idx--;
             if (count != 0) return null;
         } else {
-            currStart.addTransition(new NormalTransition(new CharLiteral(pattern[idx])));
+            start.addNormalTransitionTo(end, new CharLiteral(pattern[idx]));
         }
-
+        if (idx + 1 < pattern.length && (pattern[idx + 1] == '+')) {
+            idx++;
+            String substring = stringPattern.substring(0, idx);
+            State clone = buildPattern(substring, start);
+            end.addEpsilonTransitionTo(start);
+            start = clone;
+        }
         if (idx + 1 < pattern.length && (pattern[idx + 1] == '?')) {
             idx++;
-            // CurrStart -> CurrEnd -> NewStart/End -> next
-            //     ^-----------------------|
-            AutomataState newState = new AutomataState();
-            currEnd.addTransitionTo(newNode);
-            newNode.addTransitionTo(currStart);
-            currStart = currEnd = newNode;
+            end.addEpsilonTransitionTo(start);
         }
-
+        State next = buildPattern(stringPattern.substring(idx + 1), finalState);
+        end.addEpsilonTransitionTo(next);
+        return start;
     }
 
     enum Anchor {

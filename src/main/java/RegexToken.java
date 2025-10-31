@@ -1,13 +1,8 @@
 import java.util.HashSet;
 
 public abstract class RegexToken implements Cloneable {
-    public int length;
-
-    public abstract boolean doesItAllow(int codePoint);
-
-    public boolean doesItAllow(String inputString, int fromIndex) {
-        return doesItAllow(inputString.charAt(fromIndex));
-    }
+    /**@return length of matched part, or -1 if no match.*/
+    public abstract int doesItAllow(String inputString, int fromIndex);
 
     @Override
     public RegexToken clone() {
@@ -18,6 +13,24 @@ public abstract class RegexToken implements Cloneable {
             throw new AssertionError(e.getMessage());
         }
     }
+
+    static CharacterSet getPatternCharacterSet(String pattern, int start, int end) {
+        char[] str = pattern.toCharArray();
+        if (str.length - start < 2) return null;
+        HashSet<Integer> set = new HashSet<>();
+        CharacterSetKind kind;
+        int idx = start;
+        if (str[idx] == '^') {
+            idx++;
+            kind = CharacterSetKind.NEGATIVE;
+        } else {
+            kind = CharacterSetKind.POSITIVE;
+        }
+        for (int i = idx; i <= end; i++) {
+            set.add((int) str[i]);
+        }
+        return new CharacterSet(kind, set);
+    }
 }
 
 class CharLiteral extends RegexToken {
@@ -25,12 +38,12 @@ class CharLiteral extends RegexToken {
 
     public CharLiteral(int codePoint) {
         this.codePoint = codePoint;
-        this.length = 1;
     }
 
     @Override
-    public boolean doesItAllow(int codePoint) {
-        return codePoint == this.codePoint;
+    public int doesItAllow(String inputString, int fromIndex) {
+        int codePoint = inputString.charAt(fromIndex);
+        return codePoint == this.codePoint ? 1 : -1;
     }
 
     @Override
@@ -47,35 +60,28 @@ class CharLiteral extends RegexToken {
 }
 
 class DigitCharacterClass extends RegexToken {
-    public DigitCharacterClass() {
-        this.length = 1;
-    }
 
     @Override
-    public boolean doesItAllow(int codePoint) {
-        return Character.isDigit(codePoint);
+    public int doesItAllow(String inputString, int fromIndex) {
+        int codePoint = inputString.charAt(fromIndex);
+        return Character.isDigit(codePoint) ? 1 : -1;
     }
 }
 
 class WordCharCharacterClass extends RegexToken {
-    public WordCharCharacterClass() {
-        this.length = 1;
-    }
 
     @Override
-    public boolean doesItAllow(int codePoint) {
-        return Character.isLetterOrDigit(codePoint) || codePoint == '_';
+    public int doesItAllow(String inputString, int fromIndex) {
+        int codePoint = inputString.charAt(fromIndex);
+        boolean allowed = Character.isLetterOrDigit(codePoint) || codePoint == '_';
+        return allowed ? 1 : -1;
     }
 }
 
 class WildCard extends RegexToken {
-    public WildCard() {
-        this.length = 1;
-    }
-
     @Override
-    public boolean doesItAllow(int codePoint) {
-        return true;
+    public int doesItAllow(String inputString, int fromIndex) {
+        return 1;
     }
 }
 
@@ -84,25 +90,19 @@ class PatternSequence extends RegexToken {
 
     public void setString(String string) {
         this.string = string;
-        this.length = string.length();
     }
 
     @Override
-    public boolean doesItAllow(String inputString, int fromIndex) {
-        return inputString.startsWith(this.string, fromIndex);
+    public int doesItAllow(String inputString, int fromIndex) {
+        return inputString.startsWith(this.string, fromIndex) ? this.string.length() : -1;
     }
 
-    @Override
-    public boolean doesItAllow(int codePoint) {
-        return false;
-    }
 
     @Override
     public PatternSequence clone() {
-         PatternSequence clone = (PatternSequence) super.clone();
-         clone.string = this.string;
-         clone.length = this.length;
-         return clone;
+        PatternSequence clone = (PatternSequence) super.clone();
+        clone.string = this.string;
+        return clone;
     }
 }
 
@@ -111,12 +111,12 @@ class CharSetCharacterClass extends RegexToken {
 
     public CharSetCharacterClass(CharacterSet characterSet) {
         this.characterSet = characterSet;
-        this.length = 1;
     }
 
     @Override
-    public boolean doesItAllow(int codePoint) {
-        return characterSet.doesSetAllow(codePoint);
+    public int doesItAllow(String inputString, int fromIndex) {
+        int codePoint = inputString.charAt(fromIndex);
+        return characterSet.doesSetAllow(codePoint) ? 1 : -1;
     }
 
     @Override
@@ -153,7 +153,3 @@ enum CharacterSetKind {
     NEGATIVE
 }
 
-enum Quantifier {
-    GREEDY_STAR,
-    NONE
-}
